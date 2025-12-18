@@ -942,15 +942,23 @@
             .report-section {
                 page-break-before: auto;
                 page-break-after: auto;
-                page-break-inside: avoid;
-                margin-bottom: 30px;
-                orphans: 3;
-                widows: 3;
+                page-break-inside: auto;
+                margin-bottom: 20px;
+                orphans: 2;
+                widows: 2;
             }
 
             /* サマリーの後だけ改ページ */
             .report-summary + .report-section {
                 page-break-before: auto;
+            }
+
+            /* 最後の3セクション（アドバイス、求人、ステップ）は詰める */
+            .report-section:nth-last-of-type(-n+3) {
+                page-break-before: auto;
+                page-break-after: avoid;
+                page-break-inside: auto;
+                margin-bottom: 15px;
             }
 
             /* セクションタイトルは次のページに送らない */
@@ -963,11 +971,24 @@
             }
 
             /* 要素は柔軟に配置（ページを詰める） */
-            .gap-item,
-            .recommendation-box,
+            .gap-item {
+                page-break-inside: avoid;
+                margin-bottom: 12px;
+                orphans: 2;
+                widows: 2;
+            }
+
+            .recommendation-box {
+                page-break-inside: auto;
+                page-break-before: avoid;
+                margin-bottom: 10px;
+                orphans: 2;
+                widows: 2;
+            }
+
             .learning-roadmap-item {
                 page-break-inside: avoid;
-                margin-bottom: 15px;
+                margin-bottom: 12px;
                 orphans: 2;
                 widows: 2;
             }
