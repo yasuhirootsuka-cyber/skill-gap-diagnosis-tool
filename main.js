@@ -27,9 +27,10 @@ const questions = [
     },
     {
         id: 3,
-        question: "目標ポジションで求められるスキルレベルは？",
+        question: "このスキルをどのレベルまで伸ばしたいですか？",
         type: "skill_rating",
-        isTarget: true
+        isTarget: true,
+        hint: true
     }
 ];
 
@@ -56,6 +57,19 @@ function showQuestion(index) {
         if (skills.length === 0) {
             html += '<p style="color: #e74c3c;">まずキャリアの方向性を選択してください。</p>';
         } else {
+            // ヒントの表示（目標スキル選択時のみ）
+            if (question.hint && question.isTarget) {
+                html += `<div class="hint-box" style="background: #e8f5e9; padding: 20px; border-radius: 12px; margin-bottom: 20px; border-left: 4px solid #43e97b;">
+                    <h4 style="color: #003d7a; font-size: 16px; margin-bottom: 12px;">💡 参考：一般的な目標レベルの目安</h4>
+                    <ul style="margin: 0; padding-left: 20px; color: #333;">
+                        <li style="margin-bottom: 8px;"><strong>Lv3:</strong> 実務で自立して業務を遂行できるレベル</li>
+                        <li style="margin-bottom: 8px;"><strong>Lv4:</strong> チームをリードし、他者を指導できるレベル</li>
+                        <li style="margin-bottom: 8px;"><strong>Lv5:</strong> 業界トップクラスのエキスパートレベル</li>
+                    </ul>
+                    <p style="margin-top: 12px; margin-bottom: 0; color: #666; font-size: 14px;">※ あなたが目指したいレベルを自由に選んでください</p>
+                </div>`;
+            }
+            
             // レベル定義の表示
             html += '<div class="level-guide">';
             html += '<h4>📊 レベル評価基準</h4>';
