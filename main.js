@@ -650,157 +650,27 @@ function displayNextActions(results, career) {
 }
 
 // PDFダウンロード機能
-async function downloadPDF() {
-    // ローディング表示
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'pdf-generating';
-    loadingDiv.innerHTML = `
-        <h3>📄 PDFを生成中...</h3>
-        <div class="pdf-progress">
-            <div class="pdf-progress-fill" id="pdfProgress"></div>
-        </div>
-        <p style="margin-top: 10px;">しばらくお待ちください</p>
-    `;
-    document.body.appendChild(loadingDiv);
+function downloadPDF() {
+    // ブラウザの印刷ダイアログを開く
+    // ユーザーは「PDFとして保存」を選択できる
     
-    try {
-        updateProgress(10);
-        
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 10;
-        const maxImgHeight = pageHeight - (margin * 2);
-        
-        // 結果ページからセクションを取得
-        const resultsPage = document.getElementById('page-results');
-        const reportCard = resultsPage.querySelector('.card');
-        
-        // ボタンを一時的に非表示
-        const buttons = reportCard.querySelectorAll('.btn-print, .cta-buttons, .report-header .header-buttons');
-        buttons.forEach(btn => btn.style.display = 'none');
-        
-        updateProgress(20);
-        
-        // セクションごとにキャプチャ（各セクションを新しいページに配置）
-        const sections = [
-            { element: reportCard.querySelector('.report-summary'), name: 'サマリー' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(1)'), name: 'チャート' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(2)'), name: '詳細分析' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(3)'), name: '学習計画' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(4)'), name: 'アドバイス' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(5)'), name: '求人' },
-            { element: reportCard.querySelector('.report-section:nth-of-type(6)'), name: 'ステップ' }
-        ];
-        
-        const validSections = sections.filter(s => s.element);
-        const totalSections = validSections.length;
-        let isFirstSection = true;
-        
-        for (let i = 0; i < validSections.length; i++) {
-            const { element, name } = validSections[i];
-            
-            // セクションをキャプチャ
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff',
-                windowWidth: 900
-            });
-            
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = pageWidth - (margin * 2);
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            // 各セクションは新しいページから開始（最初のセクション以外）
-            if (!isFirstSection) {
-                pdf.addPage();
-            }
-            isFirstSection = false;
-            
-            let yPosition = margin;
-            
-            // セクションが1ページに収まる場合
-            if (imgHeight <= maxImgHeight) {
-                pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
-            } else {
-                // セクションが大きすぎる場合、複数ページに分割
-                let remainingHeight = imgHeight;
-                let sourceYPosition = 0;
-                
-                while (remainingHeight > 0) {
-                    const currentSliceHeight = Math.min(remainingHeight, maxImgHeight);
-                    
-                    // canvas上の対応するピクセル位置を計算
-                    const canvasSliceHeight = (currentSliceHeight * canvas.width) / imgWidth;
-                    
-                    // 一時的なcanvasに画像の一部を描画
-                    const tempCanvas = document.createElement('canvas');
-                    tempCanvas.width = canvas.width;
-                    tempCanvas.height = canvasSliceHeight;
-                    const ctx = tempCanvas.getContext('2d');
-                    
-                    ctx.drawImage(
-                        canvas,
-                        0, sourceYPosition,  // source x, y
-                        canvas.width, canvasSliceHeight,  // source width, height
-                        0, 0,  // dest x, y
-                        canvas.width, canvasSliceHeight  // dest width, height
-                    );
-                    
-                    const sliceImgData = tempCanvas.toDataURL('image/png');
-                    pdf.addImage(sliceImgData, 'PNG', margin, margin, imgWidth, currentSliceHeight);
-                    
-                    // 次のスライスへ
-                    sourceYPosition += canvasSliceHeight;
-                    remainingHeight -= currentSliceHeight;
-                    
-                    // まだ残りがあれば新しいページを追加
-                    if (remainingHeight > 0) {
-                        pdf.addPage();
-                    }
-                }
-            }
-            
-            updateProgress(20 + ((i + 1) / totalSections) * 60);
-        }
-        
-        // ボタンを再表示
-        buttons.forEach(btn => btn.style.display = '');
-        
-        updateProgress(90);
-        
-        // ファイル名生成
-        const careerNames = {
-            finance: 'Finance',
-            consulting: 'Consulting',
-            it: 'IT',
-            general: 'Executive'
-        };
-        const date = new Date().toISOString().split('T')[0];
-        const career = skillResults.career;
-        const filename = `SkillGapReport_${careerNames[career] || 'Report'}_${date}.pdf`;
-        
-        // PDF保存
-        pdf.save(filename);
-        
-        updateProgress(100);
-        
-        // 完了メッセージ
-        setTimeout(() => {
-            document.body.removeChild(loadingDiv);
-            alert('✅ PDFのダウンロードが完了しました！\n\n各セクションがページ単位で分かれて読みやすくなっています。');
-        }, 500);
-        
-    } catch (error) {
-        console.error('PDF生成エラー:', error);
-        if (document.body.contains(loadingDiv)) {
-            document.body.removeChild(loadingDiv);
-        }
-        alert('❌ PDF生成中にエラーが発生しました。もう一度お試しください。\n\nエラー詳細: ' + error.message);
+    // 案内メッセージ
+    const message = `
+📄 PDFダウンロード方法
+
+1. 印刷ダイアログが開きます
+2. 「送信先」または「プリンター」で「PDFに保存」を選択
+3. 「保存」をクリック
+
+※ Chromeの場合：送信先 → PDFに保存
+※ Safariの場合：PDFとして保存
+※ Edgeの場合：Microsoft Print to PDF
+    `.trim();
+    
+    // 確認ダイアログ
+    if (confirm(message + '\n\nOKを押すと印刷ダイアログが開きます。')) {
+        // 印刷ダイアログを開く
+        window.print();
     }
 }
 
