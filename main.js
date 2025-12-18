@@ -418,30 +418,32 @@ function createRadarChart(skills) {
 function displayGapAnalysis(gaps) {
     let gapHtml = '';
     
+    // すべてのスキルを表示（ギャップ0も含む）
     gaps.forEach(item => {
-        if (item.gap > 0) {
-            gapHtml += `
-                <div class="gap-item">
-                    <h4>${item.skill}</h4>
-                    <div class="gap-bars">
-                        <div class="gap-bar">
-                            <div class="gap-bar-label">現在: ${item.current}</div>
-                            <div class="gap-bar-bg">
-                                <div class="gap-bar-fill current" style="width: ${(item.current / 5) * 100}%"></div>
-                            </div>
-                        </div>
-                        <div class="gap-bar">
-                            <div class="gap-bar-label">目標: ${item.target}</div>
-                            <div class="gap-bar-bg">
-                                <div class="gap-bar-fill required" style="width: ${(item.target / 5) * 100}%"></div>
-                            </div>
+        const gapColor = item.gap > 1.5 ? '#e74c3c' : item.gap > 0.5 ? '#f39c12' : '#27ae60';
+        const gapText = item.gap === 0 ? '目標達成！' : `ギャップ: ${item.gap} レベル`;
+        
+        gapHtml += `
+            <div class="gap-item">
+                <h4>${item.skill}</h4>
+                <div class="gap-bars">
+                    <div class="gap-bar">
+                        <div class="gap-bar-label">現在: ${item.current}</div>
+                        <div class="gap-bar-bg">
+                            <div class="gap-bar-fill current" style="width: ${(item.current / 5) * 100}%"></div>
                         </div>
                     </div>
-                    <p style="color: #e74c3c; font-weight: 600; margin-top: 10px;">
-                        ギャップ: ${item.gap} レベル
-                    </p>
-                </div>`;
-        }
+                    <div class="gap-bar">
+                        <div class="gap-bar-label">目標: ${item.target}</div>
+                        <div class="gap-bar-bg">
+                            <div class="gap-bar-fill required" style="width: ${(item.target / 5) * 100}%"></div>
+                        </div>
+                    </div>
+                </div>
+                <p style="color: ${gapColor}; font-weight: 600; margin-top: 10px;">
+                    ${gapText}
+                </p>
+            </div>`;
     });
     
     if (gapHtml === '') {
