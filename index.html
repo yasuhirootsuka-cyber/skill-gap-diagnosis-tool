@@ -953,12 +953,22 @@
                 page-break-before: auto;
             }
 
-            /* 最後の3セクション（アドバイス、求人、ステップ）は詰める */
-            .report-section:nth-last-of-type(-n+3) {
-                page-break-before: auto;
-                page-break-after: avoid;
+            /* 最後の4セクション（学習リソース以降）は絶対に改ページしない */
+            .report-section:nth-of-type(3),
+            .report-section:nth-of-type(4),
+            .report-section:nth-of-type(5),
+            .report-section:nth-of-type(6) {
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
                 page-break-inside: auto;
-                margin-bottom: 15px;
+                margin-bottom: 10px;
+            }
+
+            /* 最初の2セクションだけ改ページ許可 */
+            .report-section:nth-of-type(1),
+            .report-section:nth-of-type(2) {
+                page-break-before: auto;
+                page-break-after: auto;
             }
 
             /* セクションタイトルは次のページに送らない */
@@ -966,29 +976,56 @@
                 page-break-after: avoid;
                 page-break-inside: avoid;
                 margin-top: 0;
+                margin-bottom: 12px;
+                padding-bottom: 6px;
                 orphans: 3;
                 widows: 3;
+            }
+
+            /* 最後の4セクションのタイトルはさらにコンパクト */
+            .report-section:nth-of-type(3) h3,
+            .report-section:nth-of-type(4) h3,
+            .report-section:nth-of-type(5) h3,
+            .report-section:nth-of-type(6) h3 {
+                font-size: 16px;
+                margin-bottom: 8px;
+                padding-bottom: 4px;
             }
 
             /* 要素は柔軟に配置（ページを詰める） */
             .gap-item {
                 page-break-inside: avoid;
-                margin-bottom: 12px;
-                orphans: 2;
-                widows: 2;
-            }
-
-            .recommendation-box {
-                page-break-inside: auto;
-                page-break-before: avoid;
                 margin-bottom: 10px;
                 orphans: 2;
                 widows: 2;
             }
 
+            /* recommendation-boxは分割OK、改ページしない */
+            .recommendation-box {
+                page-break-inside: auto;
+                page-break-before: avoid !important;
+                page-break-after: avoid !important;
+                margin-bottom: 8px;
+                padding: 15px;
+                orphans: 2;
+                widows: 2;
+            }
+
+            .recommendation-box h4 {
+                page-break-after: avoid;
+                margin-bottom: 10px;
+            }
+
+            .recommendation-box ul,
+            .recommendation-box li,
+            .recommendation-box p {
+                page-break-inside: auto;
+            }
+
             .learning-roadmap-item {
-                page-break-inside: avoid;
-                margin-bottom: 12px;
+                page-break-inside: auto;
+                page-break-before: avoid;
+                margin-bottom: 8px;
                 orphans: 2;
                 widows: 2;
             }
