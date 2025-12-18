@@ -667,54 +667,109 @@ async function downloadPDF() {
         updateProgress(10);
         
         const { jsPDF } = window.jspdf;
-        
-        // 結果ページ全体を取得（ボタンは除外）
-        const resultsPage = document.getElementById('page-results');
-        const reportCard = resultsPage.querySelector('.card');
-        
-        // ボタンを一時的に非表示
-        const buttons = reportCard.querySelectorAll('.btn-print, .cta-buttons');
-        buttons.forEach(btn => btn.style.display = 'none');
-        
-        updateProgress(20);
-        
-        // html2canvasでページ全体をキャプチャ
-        const canvas = await html2canvas(reportCard, {
-            scale: 2,
-            useCORS: true,
-            logging: false,
-            backgroundColor: '#ffffff'
-        });
-        
-        updateProgress(60);
-        
-        // ボタンを再表示
-        buttons.forEach(btn => btn.style.display = '');
-        
-        // PDFに変換
-        const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF('p', 'mm', 'a4');
         
         const pageWidth = pdf.internal.pageSize.getWidth();
         const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 10;
+        const maxImgHeight = pageHeight - (margin * 2);
         
-        const imgWidth = pageWidth - 20; // 左右マージン10mmずつ
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        // 結果ページからセクションを取得
+        const resultsPage = document.getElementById('page-results');
+        const reportCard = resultsPage.querySelector('.card');
         
-        let heightLeft = imgHeight;
-        let position = 10; // 上マージン
+        // ボタンを一時的に非表示
+        const buttons = reportCard.querySelectorAll('.btn-print, .cta-buttons, .report-header .header-buttons');
+        buttons.forEach(btn => btn.style.display = 'none');
         
-        // 最初のページ
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-        heightLeft -= (pageHeight - 20);
+        updateProgress(20);
         
-        // 複数ページに分割
-        while (heightLeft > 0) {
-            position = heightLeft - imgHeight + 10;
-            pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= (pageHeight - 20);
+        // セクションごとにキャプチャ（各セクションを新しいページに配置）
+        const sections = [
+            { element: reportCard.querySelector('.report-summary'), name: 'サマリー' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(1)'), name: 'チャート' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(2)'), name: '詳細分析' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(3)'), name: '学習計画' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(4)'), name: 'アドバイス' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(5)'), name: '求人' },
+            { element: reportCard.querySelector('.report-section:nth-of-type(6)'), name: 'ステップ' }
+        ];
+        
+        const validSections = sections.filter(s => s.element);
+        const totalSections = validSections.length;
+        let isFirstSection = true;
+        
+        for (let i = 0; i < validSections.length; i++) {
+            const { element, name } = validSections[i];
+            
+            // セクションをキャプチャ
+            const canvas = await html2canvas(element, {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                backgroundColor: '#ffffff',
+                windowWidth: 900
+            });
+            
+            const imgData = canvas.toDataURL('image/png');
+            const imgWidth = pageWidth - (margin * 2);
+            const imgHeight = (canvas.height * imgWidth) / canvas.width;
+            
+            // 各セクションは新しいページから開始（最初のセクション以外）
+            if (!isFirstSection) {
+                pdf.addPage();
+            }
+            isFirstSection = false;
+            
+            let yPosition = margin;
+            
+            // セクションが1ページに収まる場合
+            if (imgHeight <= maxImgHeight) {
+                pdf.addImage(imgData, 'PNG', margin, yPosition, imgWidth, imgHeight);
+            } else {
+                // セクションが大きすぎる場合、複数ページに分割
+                let remainingHeight = imgHeight;
+                let sourceYPosition = 0;
+                
+                while (remainingHeight > 0) {
+                    const currentSliceHeight = Math.min(remainingHeight, maxImgHeight);
+                    
+                    // canvas上の対応するピクセル位置を計算
+                    const canvasSliceHeight = (currentSliceHeight * canvas.width) / imgWidth;
+                    
+                    // 一時的なcanvasに画像の一部を描画
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = canvas.width;
+                    tempCanvas.height = canvasSliceHeight;
+                    const ctx = tempCanvas.getContext('2d');
+                    
+                    ctx.drawImage(
+                        canvas,
+                        0, sourceYPosition,  // source x, y
+                        canvas.width, canvasSliceHeight,  // source width, height
+                        0, 0,  // dest x, y
+                        canvas.width, canvasSliceHeight  // dest width, height
+                    );
+                    
+                    const sliceImgData = tempCanvas.toDataURL('image/png');
+                    pdf.addImage(sliceImgData, 'PNG', margin, margin, imgWidth, currentSliceHeight);
+                    
+                    // 次のスライスへ
+                    sourceYPosition += canvasSliceHeight;
+                    remainingHeight -= currentSliceHeight;
+                    
+                    // まだ残りがあれば新しいページを追加
+                    if (remainingHeight > 0) {
+                        pdf.addPage();
+                    }
+                }
+            }
+            
+            updateProgress(20 + ((i + 1) / totalSections) * 60);
         }
+        
+        // ボタンを再表示
+        buttons.forEach(btn => btn.style.display = '');
         
         updateProgress(90);
         
@@ -737,12 +792,14 @@ async function downloadPDF() {
         // 完了メッセージ
         setTimeout(() => {
             document.body.removeChild(loadingDiv);
-            alert('✅ PDFのダウンロードが完了しました！\n\n画面に表示されている詳細レポート全体がPDFに含まれています。');
+            alert('✅ PDFのダウンロードが完了しました！\n\n各セクションがページ単位で分かれて読みやすくなっています。');
         }, 500);
         
     } catch (error) {
         console.error('PDF生成エラー:', error);
-        document.body.removeChild(loadingDiv);
+        if (document.body.contains(loadingDiv)) {
+            document.body.removeChild(loadingDiv);
+        }
         alert('❌ PDF生成中にエラーが発生しました。もう一度お試しください。\n\nエラー詳細: ' + error.message);
     }
 }
