@@ -225,8 +225,9 @@ function nextQuestion() {
     if (currentQuestion < questions.length - 1) {
         showQuestion(currentQuestion + 1);
     } else {
+        // 質問完了後、直接結果表示
         calculateResults();
-        showPreview();
+        showDetailedResults();
     }
 }
 
@@ -286,102 +287,7 @@ function calculateResults() {
 }
 
 // プレビュー表示
-function showPreview() {
-    const results = skillResults;
-    const level = results.avgCurrent >= 4 ? '上級' : results.avgCurrent >= 3 ? '中級' : '初級';
-    const levelClass = results.avgCurrent >= 4 ? 'high' : results.avgCurrent >= 3 ? 'medium' : 'low';
-    
-    document.getElementById('previewLevel').textContent = level;
-    document.getElementById('previewLevel').className = `skill-level-display ${levelClass}`;
-    
-    // キャリアパス別のメッセージを生成
-    console.log('showPreview - avgCurrent:', results.avgCurrent, 'avgGap:', results.avgGap, 'career:', results.career);
-    
-    let message = '';
-    if (typeof generateDiagnosisMessage === 'function') {
-        message = generateDiagnosisMessage(
-            parseFloat(results.avgCurrent),
-            parseFloat(results.avgGap),
-            results.career
-        );
-        console.log('Generated message:', message);
-    } else {
-        console.error('generateDiagnosisMessage function not found!');
-        // フォールバック：従来のメッセージ
-        if (results.avgGap > 1.5) {
-            message = 'いくつかのスキルで大きなギャップがあります。重点的な学習が必要です。';
-        } else if (results.avgGap > 0.5) {
-            message = '目標達成まであと一歩です。戦略的なスキルアップで目標達成可能です。';
-        } else {
-            message = '素晴らしい！現在のスキルで目標ポジションに十分対応できます。';
-        }
-    }
-    
-    document.getElementById('previewMessage').textContent = message;
-    
-    document.getElementById('page-questions').classList.remove('active');
-    document.getElementById('page-preview').classList.add('active');
-}
-
-// メール送信
-async function submitEmail() {
-    const email = document.getElementById('email').value;
-    const agree = document.getElementById('agree').checked;
-    
-    if (!email) {
-        alert('メールアドレスを入力してください');
-        return;
-    }
-    
-    if (!agree) {
-        alert('個人情報保護方針に同意してください');
-        return;
-    }
-    
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        alert('有効なメールアドレスを入力してください');
-        return;
-    }
-    
-    // データベースに保存
-    try {
-        await saveDiagnosticData(email);
-        showDetailedResults();
-    } catch (error) {
-        console.error('Error saving data:', error);
-        // エラーでも結果は表示する
-        showDetailedResults();
-    }
-}
-
-// 診断データ保存
-async function saveDiagnosticData(email) {
-    const data = {
-        email: email,
-        career_path: selectedCareer,
-        current_skills: JSON.stringify(currentSkills),
-        target_skills: JSON.stringify(targetSkills),
-        avg_current: parseFloat(skillResults.avgCurrent),
-        avg_target: parseFloat(skillResults.avgTarget),
-        avg_gap: parseFloat(skillResults.avgGap),
-        diagnostic_date: new Date().toISOString()
-    };
-
-    const response = await fetch('tables/skill_gap_diagnostics', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to save diagnostic data');
-    }
-
-    return await response.json();
-}
+// メール入力画面は削除されたため、showPreview, submitEmail, saveDiagnosticData は不要
 
 // 詳細結果表示
 function showDetailedResults() {
@@ -422,7 +328,7 @@ function showDetailedResults() {
     displayNextActions(results, career);
     
     // ページ切り替え
-    document.getElementById('page-preview').classList.remove('active');
+    document.getElementById('page-questions').classList.remove('active');
     document.getElementById('page-results').classList.add('active');
 }
 
@@ -758,90 +664,70 @@ async function downloadPDF() {
     document.body.appendChild(loadingDiv);
     
     try {
-        // 進捗更新
-        updateProgress(20);
+        updateProgress(10);
         
         const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
         
-        // 日本語フォント対応のため、テキストをシンプルに
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const margin = 15;
-        let yPosition = margin;
+        // 結果ページ全体を取得（ボタンは除外）
+        const resultsPage = document.getElementById('page-results');
+        const reportCard = resultsPage.querySelector('.card');
         
-        updateProgress(30);
+        // ボタンを一時的に非表示
+        const buttons = reportCard.querySelectorAll('.btn-print, .cta-buttons');
+        buttons.forEach(btn => btn.style.display = 'none');
         
-        // タイトル
-        pdf.setFontSize(20);
-        pdf.text('Skill Gap Analysis Report', pageWidth / 2, yPosition, { align: 'center' });
-        yPosition += 15;
+        updateProgress(20);
         
-        // サマリー情報
-        pdf.setFontSize(12);
-        const careerNames = {
-            finance: 'Finance Specialist',
-            consulting: 'Consultant',
-            it: 'IT Engineer',
-            general: 'Executive'
-        };
-        
-        const results = skillResults;
-        const career = results.career;
-        
-        pdf.text(`Career Path: ${careerNames[career] || career}`, margin, yPosition);
-        yPosition += 7;
-        pdf.text(`Current Skill Level: ${results.avgCurrent} / 5.0`, margin, yPosition);
-        yPosition += 7;
-        pdf.text(`Target Skill Level: ${results.avgTarget} / 5.0`, margin, yPosition);
-        yPosition += 7;
-        pdf.text(`Average Gap: ${results.avgGap} levels`, margin, yPosition);
-        yPosition += 15;
-        
-        updateProgress(50);
-        
-        // スキル詳細
-        pdf.setFontSize(14);
-        pdf.text('Skill Details', margin, yPosition);
-        yPosition += 10;
-        
-        pdf.setFontSize(10);
-        const skills = results.skills;
-        skills.forEach((skill, index) => {
-            const current = currentSkills[skill] || 0;
-            const target = targetSkills[skill] || 0;
-            const gap = target - current;
-            
-            if (yPosition > pageHeight - 20) {
-                pdf.addPage();
-                yPosition = margin;
-            }
-            
-            pdf.text(`${index + 1}. ${skill}`, margin, yPosition);
-            yPosition += 5;
-            pdf.text(`   Current: ${current} | Target: ${target} | Gap: ${gap}`, margin + 5, yPosition);
-            yPosition += 8;
+        // html2canvasでページ全体をキャプチャ
+        const canvas = await html2canvas(reportCard, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
         });
         
-        updateProgress(70);
+        updateProgress(60);
         
-        // レーダーチャートをキャプチャ
-        const canvas = document.getElementById('radarChart');
-        if (canvas) {
-            const imgData = canvas.toDataURL('image/png');
+        // ボタンを再表示
+        buttons.forEach(btn => btn.style.display = '');
+        
+        // PDFに変換
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        
+        const imgWidth = pageWidth - 20; // 左右マージン10mmずつ
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        let heightLeft = imgHeight;
+        let position = 10; // 上マージン
+        
+        // 最初のページ
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pageHeight - 20);
+        
+        // 複数ページに分割
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight + 10;
             pdf.addPage();
-            yPosition = margin;
-            pdf.setFontSize(14);
-            pdf.text('Skill Evaluation Chart', margin, yPosition);
-            yPosition += 10;
-            pdf.addImage(imgData, 'PNG', margin, yPosition, pageWidth - 2 * margin, 100);
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= (pageHeight - 20);
         }
         
         updateProgress(90);
         
         // ファイル名生成
+        const careerNames = {
+            finance: 'Finance',
+            consulting: 'Consulting',
+            it: 'IT',
+            general: 'Executive'
+        };
         const date = new Date().toISOString().split('T')[0];
-        const filename = `SkillGapReport_${careerNames[career]}_${date}.pdf`;
+        const career = skillResults.career;
+        const filename = `SkillGapReport_${careerNames[career] || 'Report'}_${date}.pdf`;
         
         // PDF保存
         pdf.save(filename);
@@ -851,13 +737,13 @@ async function downloadPDF() {
         // 完了メッセージ
         setTimeout(() => {
             document.body.removeChild(loadingDiv);
-            alert('✅ PDFのダウンロードが完了しました！');
+            alert('✅ PDFのダウンロードが完了しました！\n\n画面に表示されている詳細レポート全体がPDFに含まれています。');
         }, 500);
         
     } catch (error) {
         console.error('PDF生成エラー:', error);
         document.body.removeChild(loadingDiv);
-        alert('❌ PDF生成中にエラーが発生しました。もう一度お試しください。');
+        alert('❌ PDF生成中にエラーが発生しました。もう一度お試しください。\n\nエラー詳細: ' + error.message);
     }
 }
 
