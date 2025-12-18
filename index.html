@@ -934,26 +934,38 @@
             .report-summary {
                 page-break-after: always;
                 page-break-inside: avoid;
+                orphans: 3;
+                widows: 3;
             }
 
-            /* 各セクションは改ページを挟む */
+            /* 各セクションは必ず新しいページから開始 */
             .report-section {
                 page-break-before: always;
-                page-break-inside: avoid;
+                page-break-after: auto;
+                page-break-inside: auto;
                 margin-bottom: 0;
+                orphans: 3;
+                widows: 3;
             }
 
-            /* 最初のセクション（スキル評価チャート）は改ページしない */
-            .report-section:first-of-type {
-                page-break-before: auto;
+            /* セクションタイトルは次のページに送らない */
+            .report-section h3 {
+                page-break-after: avoid;
+                page-break-inside: avoid;
+                orphans: 3;
+                widows: 3;
             }
 
-            /* 小さな要素は分割しない */
+            /* 小さな要素は可能な限り分割しない */
             .gap-item,
             .recommendation-box,
-            .learning-roadmap-item {
+            .learning-roadmap-item,
+            .summary-grid,
+            .summary-item {
                 page-break-inside: avoid;
                 margin-bottom: 15px;
+                orphans: 2;
+                widows: 2;
             }
 
             /* チャートコンテナ */
