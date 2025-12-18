@@ -938,34 +938,50 @@
                 widows: 3;
             }
 
-            /* 各セクションは必ず新しいページから開始 */
+            /* 各セクションは改ページを控えめに */
             .report-section {
-                page-break-before: always;
+                page-break-before: auto;
                 page-break-after: auto;
-                page-break-inside: auto;
-                margin-bottom: 0;
+                page-break-inside: avoid;
+                margin-bottom: 30px;
                 orphans: 3;
                 widows: 3;
+            }
+
+            /* サマリーの後だけ改ページ */
+            .report-summary + .report-section {
+                page-break-before: auto;
             }
 
             /* セクションタイトルは次のページに送らない */
             .report-section h3 {
                 page-break-after: avoid;
                 page-break-inside: avoid;
+                margin-top: 0;
                 orphans: 3;
                 widows: 3;
             }
 
-            /* 小さな要素は可能な限り分割しない */
+            /* 要素は柔軟に配置（ページを詰める） */
             .gap-item,
             .recommendation-box,
-            .learning-roadmap-item,
-            .summary-grid,
-            .summary-item {
+            .learning-roadmap-item {
                 page-break-inside: avoid;
                 margin-bottom: 15px;
                 orphans: 2;
                 widows: 2;
+            }
+
+            /* summary要素は分割しない */
+            .summary-grid,
+            .summary-item {
+                page-break-inside: avoid;
+            }
+
+            /* gap-analysisの各項目を表示 */
+            .gap-analysis .gap-item {
+                display: block !important;
+                visibility: visible !important;
             }
 
             /* チャートコンテナ */
@@ -1019,9 +1035,35 @@
                 text-decoration: none;
             }
 
-            /* マージン調整 */
+            /* ページマージン調整 */
             @page {
                 margin: 15mm;
+                size: A4;
+            }
+
+            /* レーダーチャートコンテナ */
+            .radar-chart-container canvas {
+                max-height: 400px !important;
+            }
+
+            /* すべてのセクションを表示 */
+            .report-section,
+            .gap-analysis,
+            .recommendation-box,
+            #prioritySkills,
+            #learningRoadmap,
+            #learningMethods,
+            #careerAdvice,
+            #matchingJobs,
+            #nextActions {
+                display: block !important;
+                visibility: visible !important;
+            }
+
+            /* ギャップ分析の全項目を表示 */
+            #gapAnalysis > * {
+                display: block !important;
+                visibility: visible !important;
             }
         }
 
